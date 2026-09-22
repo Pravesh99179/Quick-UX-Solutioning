@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Rally Merch Picker</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+<style>
+  /* ── Base reset (this file is standalone, so it carries its own —
+     a hosted claude.ai artifact would normally get this for free) ── */
+  html{ color-scheme: light; }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{margin:0;}
+  img{max-width:100%;}
+  [hidden]{display:none !important;}
+
+  /* ── Rally design tokens ──────────────────────────────────────────────
+     Mapped from the Aftershoot design-system v2 *structure* (semantic
+     surface/type/edge tokens, a fixed type + spacing + radius scale,
+     Material Symbols icons) — the literal Aftershoot reference token
+     files weren't available when this was built, so the hex values
+     below are a reasoned stand-in built the same way, not the real
+     brand palette. Swap them for the real ones in Claude Code.
+     Deliberately single-theme (light): a warm, collegiate,
+     customer-facing pick, not an app shell, so it commits to one look
+     rather than flipping with system dark mode. */
+  :root{
+    --bg:#F5F6F2;
+    --surface:#FFFFFF;
+    --surface-alt:#ECEEE7;
+    --surface-selected:#E8EDFE;
+    --edge:#DEE1D8;
+    --edge-strong:#C7CBBD;
+    --text-0:#15160F;
+    --text-1:#565A4C;
+    --text-2:#8B8F80;
+    --accent:#2450E0;
+    --accent-hover:#1B3FBD;
+    --accent-soft:#E8EDFE;
+    --gold:#C08A12;
+    --gold-soft:#FBF1DC;
+    --font:'Manrope',ui-sans-serif,system-ui,-apple-system,sans-serif;
+    --radius-sm:10px;
+    --radius-md:14px;
+    --radius-lg:22px;
+    --radius-full:999px;
+    --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px; --sp-10:40px;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  body{
+    background:var(--bg);
+    color:var(--text-0);
+    font-family:var(--font);
+    padding-inline:20px;
+  }
+  .material-symbols-outlined{
+    font-variation-settings:'FILL' 0,'wght' 500,'GRAD' 0,'opsz' 20;
+    display:inline-flex; align-items:center; user-select:none; line-height:1; vertical-align:middle;
+  }
+  .shell{max-width:440px; margin:0 auto; min-height:100%; display:flex; flex-direction:column; padding-block:var(--sp-6) var(--sp-8);}
+  .topbar{display:flex; align-items:center; justify-content:space-between; min-height:32px; margin-bottom:var(--sp-6);}
+  .wordmark{font-weight:800; font-size:15px; letter-spacing:0.01em; color:var(--text-0);}
+  .backbtn{display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:var(--radius-full); border:none; background:transparent; color:var(--text-1); cursor:pointer;}
+  .backbtn:hover{background:var(--surface-alt);}
+  .backbtn:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  .eyebrow{font-size:12px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-2); margin-bottom:var(--sp-2);}
+  h1.prompt{font-size:24px; line-height:30px; font-weight:800; letter-spacing:-0.01em; text-wrap:balance; margin:0 0 var(--sp-6) 0;}
+  .screen{animation:none;}
+  @media (prefers-reduced-motion:no-preference){
+    .screen{animation:fadeUp .38s ease both;}
+  }
+  @keyframes fadeUp{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
+  .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-3);}
+  .option-card{
+    display:flex; flex-direction:column; align-items:flex-start; gap:var(--sp-3);
+    background:var(--surface); border:1.5px solid var(--edge); border-radius:var(--radius-md);
+    padding:var(--sp-4); cursor:pointer; text-align:left; font-family:var(--font);
+    transition:border-color .15s ease, background .15s ease, transform .1s ease;
+  }
+  .option-card:hover{border-color:var(--edge-strong); background:var(--surface-alt);}
+  .option-card:active{transform:scale(0.98);}
+  .option-card:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  .option-icon{
+    width:38px; height:38px; border-radius:var(--radius-sm); background:var(--accent-soft); color:var(--accent);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .option-label{font-size:14px; font-weight:700; color:var(--text-0); line-height:18px;}
+  .option-row{display:flex; flex-direction:column; gap:var(--sp-3);}
+  .option-row .option-card{flex-direction:row; align-items:center;}
+  .option-row .option-label{font-size:15px;}
+  .palette-card{display:flex; align-items:center; gap:var(--sp-3);}
+  .swatch-pair{display:flex; width:34px; height:34px; border-radius:var(--radius-full); overflow:hidden; border:1.5px solid var(--edge-strong); flex-shrink:0;}
+  .swatch-pair span{flex:1; height:100%;}
+  .mock{
+    width:100%; aspect-ratio:4/3; border-radius:var(--radius-lg); position:relative; overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 14px 32px -12px rgba(15,17,10,0.28), inset 0 1px 0 rgba(255,255,255,0.14);
+  }
+  .mock-sheen{position:absolute; inset:0; background:radial-gradient(120% 90% at 22% 12%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 55%);}
+  .mock-icon-wrap{width:64px; height:64px; border-radius:var(--radius-full); background:rgba(255,255,255,0.94); display:flex; align-items:center; justify-content:center; box-shadow:0 6px 18px rgba(0,0,0,0.16); position:relative;}
+  .mock-icon-wrap .material-symbols-outlined{color:var(--text-0);}
+  .lastyear{display:flex; align-items:flex-start; gap:6px; font-size:12.5px; line-height:17px; font-weight:500; color:var(--text-2);}
+  .lastyear .material-symbols-outlined{margin-top:1px; color:var(--text-2);}
+  .result-card{background:var(--surface); border:1.5px solid var(--edge); border-radius:var(--radius-lg); padding:var(--sp-5); display:flex; flex-direction:column; gap:var(--sp-4);}
+  .social-chip{display:inline-flex; align-items:center; gap:6px; align-self:flex-start; background:var(--gold-soft); color:#7A5B0C; font-size:12px; font-weight:700; padding:6px 10px; border-radius:var(--radius-full);}
+  h2.product-name{font-size:21px; line-height:27px; font-weight:800; margin:0; letter-spacing:-0.01em; text-wrap:balance;}
+  p.reason{font-size:14px; line-height:20px; font-weight:500; color:var(--text-1); margin:0;}
+  .btn-primary{
+    display:flex; align-items:center; justify-content:center; gap:8px; width:100%;
+    background:var(--accent); color:#fff; border:none; border-radius:var(--radius-md);
+    padding:14px var(--sp-4); font-family:var(--font); font-size:15px; font-weight:700; cursor:pointer;
+    transition:background .15s ease;
+  }
+  .btn-primary:hover{background:var(--accent-hover);}
+  .btn-primary:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  .btn-primary[data-saved="true"]{background:#1E7A45;}
+  .btn-ghost{
+    display:flex; align-items:center; justify-content:center; gap:6px; width:100%; background:transparent;
+    color:var(--text-1); border:none; padding:10px; font-family:var(--font); font-size:14px; font-weight:700; cursor:pointer; border-radius:var(--radius-sm);
+  }
+  .btn-ghost:hover{color:var(--text-0); background:var(--surface-alt);}
+  .alt-card{display:flex; align-items:center; gap:var(--sp-3); background:var(--surface-alt); border-radius:var(--radius-md); padding:var(--sp-3);}
+  .alt-mock{width:52px; height:52px; border-radius:var(--radius-sm); flex-shrink:0; display:flex; align-items:center; justify-content:center;}
+  .alt-mock .material-symbols-outlined{color:#fff;}
+  .alt-name{font-size:13px; font-weight:700; color:var(--text-0);}
+  .alt-sub{font-size:12px; color:var(--text-2); font-weight:500;}
+  @media (max-width:380px){
+    .grid-2{grid-template-columns:1fr 1fr;}
+    h1.prompt{font-size:21px; line-height:27px;}
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+<script type="text/babel">
+const { useState } = React;
+
+const EVENTS = [
+  { id:'bidday', name:'Bid Day', icon:'celebration' },
+  { id:'biglittle', name:'Big/Little Reveal', icon:'handshake' },
+  { id:'formal', name:'Formal', icon:'diamond' },
+  { id:'gameday', name:'Game Day', icon:'sports_football' },
+  { id:'philanthropy', name:'Philanthropy Week', icon:'volunteer_activism' },
+  { id:'retreat', name:'Retreat', icon:'forest' },
+  { id:'homecoming', name:'Homecoming', icon:'flag' },
+];
+
+const VIBES = [
+  { id:'classic', name:'Classic & Clean', icon:'crop_square' },
+  { id:'bold', name:'Bold & Trendy', icon:'bolt' },
+  { id:'playful', name:'Playful & Fun', icon:'mood' },
+];
+
+const BUDGETS = [
+  { id:'budget', name:'Budget-Friendly', icon:'savings' },
+  { id:'mid', name:'Mid-Range', icon:'balance' },
+  { id:'goAllOut', name:'Go All Out', icon:'auto_awesome' },
+];
+
+const PALETTES = [
+  { id:'navygold', name:'Navy & Gold', colors:['#1B2A5E','#C8890A'] },
+  { id:'blushcream', name:'Blush & Cream', colors:['#E8A7A0','#F6ECD9'] },
+  { id:'blackwhite', name:'Black & White', colors:['#111111','#FFFFFF'] },
+  { id:'greengold', name:'Green & Gold', colors:['#1F5C3F','#C8890A'] },
+];
+
+const CATALOG = [
+  { id:'crewneck', name:'Rally Crewneck', icon:'checkroom', events:['gameday','retreat','homecoming'], vibe:'bold', budget:'mid', blurb:'A heavyweight crewneck built for tailgates and long weekends.' },
+  { id:'comforttee', name:'Comfort Colors Tee', icon:'checkroom', events:['bidday','philanthropy'], vibe:'classic', budget:'budget', blurb:"The one every chapter already owns three of — soft, boxy, reliable." },
+  { id:'quarterzip', name:'Custom Quarter-Zip', icon:'checkroom', events:['formal','homecoming'], vibe:'classic', budget:'goAllOut', blurb:"Elevated enough for parents' weekend, warm enough for October." },
+  { id:'biglittleset', name:'Big/Little Matching Set', icon:'favorite', events:['biglittle'], vibe:'playful', budget:'mid', blurb:'Coordinated tees for the reveal photos everyone actually reposts.' },
+  { id:'varsity', name:'Retro Varsity Jacket', icon:'checkroom', events:['homecoming','gameday'], vibe:'bold', budget:'goAllOut', blurb:'A statement piece — the one people ask "where\'d you get that" about.' },
+  { id:'hoodie', name:'Everyday Hoodie', icon:'checkroom', events:['retreat','philanthropy'], vibe:'classic', budget:'mid', blurb:'Lives in every closet by week two. Hard to get wrong.' },
+  { id:'buckethat', name:'Statement Bucket Hat', icon:'star', events:['gameday','bidday'], vibe:'playful', budget:'budget', blurb:'Low commitment, high visibility — good for a first order.' },
+  { id:'tote', name:'Embroidered Tote', icon:'shopping_bag', events:['philanthropy','formal'], vibe:'classic', budget:'budget', blurb:'Doubles as a philanthropy fundraiser item and a keepsake.' },
+];
+
+function scoreItem(item, answers){
+  let score = 0;
+  if (item.events.includes(answers.event)) score += 3;
+  if (item.vibe === answers.vibe) score += 2;
+  if (item.budget === answers.budget) score += 1;
+  return score;
+}
+
+function getRecommendations(answers){
+  const scored = CATALOG.map(item => ({ ...item, score: scoreItem(item, answers) })).sort((a,b) => b.score - a.score);
+  return { top: scored[0], alt: scored[1] };
+}
+
+function reasonLine(answers){
+  const eventName = (EVENTS.find(e => e.id === answers.event) || {}).name || 'your event';
+  const vibeWord = answers.vibe === 'bold' ? 'bold' : answers.vibe === 'playful' ? 'playful' : 'classic';
+  return `A ${vibeWord} pick chapters keep choosing for ${eventName} this season.`;
+}
+
+function Icon({ name, size = 20, filled = false, style = {} }){
+  return (
+    <span className="material-symbols-outlined" style={{ fontSize:size, ...(filled ? { fontVariationSettings:"'FILL' 1" } : {}), ...style }}>
+      {name}
+    </span>
+  );
+}
+
+function Mock({ palette, icon, height }){
+  const colors = palette ? palette.colors : ['#2450E0', '#1B2A5E'];
+  return (
+    <div className="mock" style={{ background:`linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 100%)`, ...(height ? { aspectRatio:'auto', height } : {}) }}>
+      <div className="mock-sheen" />
+      <div className="mock-icon-wrap"><Icon name={icon} size={28} /></div>
+    </div>
+  );
+}
+
+function lastYearLine(answers){
+  const eventName = (EVENTS.find(e => e.id === answers.event) || {}).name || 'this event';
+  const vibeWord = answers.vibe === 'bold' ? 'bold, statement pieces' : answers.vibe === 'playful' ? 'fun, colorful picks' : 'classic, easy-to-wear basics';
+  return `Last year, chapters like yours mostly went with ${vibeWord} for ${eventName}.`;
+}
+
+function TopBar({ onBack, showWordmark }){
+  return (
+    <div className="topbar">
+      {onBack ? (
+        <button className="backbtn" onClick={onBack} aria-label="Back"><Icon name="arrow_back" size={20} /></button>
+      ) : <span />}
+      {showWordmark ? <span className="wordmark">Rally</span> : <span />}
+      <span style={{ width:32 }} />
+    </div>
+  );
+}
+
+function EventScreen({ onSelect }){
+  return (
+    <div className="screen" key="event">
+      <TopBar showWordmark />
+      <div className="eyebrow">What's on the calendar?</div>
+      <h1 className="prompt">Let's find your merch.</h1>
+      <div className="grid-2">
+        {EVENTS.map(ev => (
+          <button key={ev.id} className="option-card" onClick={() => onSelect(ev.id)}>
+            <div className="option-icon"><Icon name={ev.icon} size={20} /></div>
+            <span className="option-label">{ev.name}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function QuestionScreen({ title, eyebrow, options, onSelect, onBack, renderOption }){
+  return (
+    <div className="screen" key={eyebrow}>
+      <TopBar onBack={onBack} />
+      <div className="eyebrow">{eyebrow}</div>
+      <h1 className="prompt">{title}</h1>
+      <div className="option-row">
+        {options.map(opt => (
+          <button key={opt.id} className="option-card" onClick={() => onSelect(opt.id)}>
+            {renderOption ? renderOption(opt) : (<><div className="option-icon"><Icon name={opt.icon} size={18} /></div><span className="option-label">{opt.name}</span></>)}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ResultScreen({ answers, onBack, onRestart }){
+  const [saved, setSaved] = useState(false);
+  const [showAlt, setShowAlt] = useState(false);
+  const { top, alt } = getRecommendations(answers);
+  const palette = PALETTES.find(p => p.id === answers.palette);
+
+  return (
+    <div className="screen" key="result">
+      <TopBar onBack={onBack} />
+      <div className="eyebrow">The pick</div>
+      <h1 className="prompt" style={{ marginBottom:'var(--sp-4)' }}>Here's what we'd get.</h1>
+      <div className="result-card">
+        <Mock palette={palette} icon={top.icon} />
+        <span className="social-chip"><Icon name="trending_up" size={14} filled /> Trending this season</span>
+        <div>
+          <h2 className="product-name">{top.name}</h2>
+          <p className="reason" style={{ marginTop:6 }}>{top.blurb}</p>
+        </div>
+        <p className="reason" style={{ fontStyle:'italic' }}>{reasonLine(answers)}</p>
+        <p className="lastyear"><Icon name="history" size={15} />{lastYearLine(answers)}</p>
+        <button className="btn-primary" data-saved={saved} onClick={() => setSaved(true)}>
+          <Icon name={saved ? 'check_circle' : 'bookmark'} size={18} filled={saved} />
+          {saved ? 'Saved to your list' : 'Save this pick'}
+        </button>
+        {!showAlt ? (
+          <button className="btn-ghost" onClick={() => setShowAlt(true)}>Not it? See another<Icon name="chevron_right" size={16} /></button>
+        ) : (
+          <div className="alt-card">
+            <div className="alt-mock" style={{ background:'var(--accent)' }}><Icon name={alt.icon} size={20} /></div>
+            <div>
+              <div className="alt-name">{alt.name}</div>
+              <div className="alt-sub">{alt.blurb}</div>
+            </div>
+          </div>
+        )}
+        <button className="btn-ghost" onClick={onRestart}><Icon name="refresh" size={16} />Start over</button>
+      </div>
+    </div>
+  );
+}
+
+function App(){
+  const steps = ['event','vibe','budget','palette','result'];
+  const [stepIndex, setStepIndex] = useState(0);
+  const [answers, setAnswers] = useState({ event:null, vibe:null, budget:null, palette:null });
+
+  const step = steps[stepIndex];
+  const goNext = () => setStepIndex(i => Math.min(i + 1, steps.length - 1));
+  const goBack = () => setStepIndex(i => Math.max(i - 1, 0));
+  const restart = () => { setAnswers({ event:null, vibe:null, budget:null, palette:null }); setStepIndex(0); };
+  const pick = (key) => (value) => { setAnswers(a => ({ ...a, [key]: value })); goNext(); };
+
+  return (
+    <div className="shell">
+      {step === 'event' && <EventScreen onSelect={pick('event')} />}
+      {step === 'vibe' && (
+        <QuestionScreen eyebrow="Vibe check" title="What's the vibe?" options={VIBES} onSelect={pick('vibe')} onBack={goBack} />
+      )}
+      {step === 'budget' && (
+        <QuestionScreen eyebrow="Budget" title="How much are we working with?" options={BUDGETS} onSelect={pick('budget')} onBack={goBack} />
+      )}
+      {step === 'palette' && (
+        <QuestionScreen
+          eyebrow="Colors"
+          title="What are your chapter colors?"
+          options={PALETTES}
+          onSelect={pick('palette')}
+          onBack={goBack}
+          renderOption={(opt) => (
+            <div className="palette-card">
+              <div className="swatch-pair"><span style={{ background:opt.colors[0] }} /><span style={{ background:opt.colors[1] }} /></div>
+              <span className="option-label">{opt.name}</span>
+            </div>
+          )}
+        />
+      )}
+      {step === 'result' && <ResultScreen answers={answers} onBack={goBack} onRestart={restart} />}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
